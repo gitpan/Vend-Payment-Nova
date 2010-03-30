@@ -1,0 +1,5 @@
+Revision history for Perl extension Vend::Payment::Nova.
+
+1.02  Jan 13 17:39:54 2009
+	- Joseph Montanez reports that Nova might (rarely) return 'APPROVAL' instead of 'APPROVED'.
+
