@@ -85,9 +85,25 @@ A fully valid catalog.cfg entry to work with the standard demo would be:
 
 =head1 VERSION HISTORY
 
+=over
+
+=item *
+
 06-10-2008 - Version 1.01
+
+=item
+
 01-13-2009 - Version 1.02
     - Joseph Montanez reports that Nova might (rarely) return 'APPROVAL' instead of 'APPROVED'.
+
+=item
+
+03-17-2011 - Version 1.03
+    - added 'use strict;' -- an oversight, but didn't require any further changes. :-)
+    - some formatting changes, and made a DEBUG constant
+    - added VERSION to Makefile.PL
+
+=back
 
 =head1 BUGS
 
@@ -135,9 +151,10 @@ BEGIN {
 
 }
 
-package Vend::Payment;
-
 use vars qw/$Have_LWP $Have_Net_SSLeay/;
+use strict;
+
+use constant DEBUG => 0;
 
 my %AVS_CODES = (
     'A' => 'Address matches - Zip Code does not match.',
@@ -187,7 +204,7 @@ sub nova {
         %actual = map_actual();
     }
 
-#::logDebug("Mapping: " . ::uneval(%actual));
+    ::logDebug("Mapping: " . ::uneval(%actual)) if DEBUG;
 
     my $exp = sprintf('%02d%02d', $actual{mv_credit_card_exp_month}, $actual{mv_credit_card_exp_year});
 
@@ -225,35 +242,35 @@ sub nova {
         ssl_description => "0001~Generic Order String~$amount~1~N~||",
         ssl_ship_to_phone => $actual{phone_day},
 
-# CVV
+        # CVV
         ssl_cvv2 => 'present',
         ssl_cvv2cvc2_indicator => 1,
         ssl_cvv2cvc2 => $actual{mv_credit_card_cvv2},
 
-# AVS
+        # AVS
         ssl_avs_address => substr($actual{b_address}, 0, 20),
         ssl_avs_zip => $actual{b_zip},
-        );
+    );
 
 #$values{'ssl_test_mode'} = 'TRUE';
 
-#::logDebug("Values to be sent: " . ::uneval(%values));
+    ::logDebug("Values to be sent: " . ::uneval(%values)) if DEBUG;
 
     $opt->{submit_url} = $opt->{submit_url}
                    || 'https://www.myvirtualmerchant.com/VirtualMerchant/process.do';
 
     my $merchant_return = post_data($opt, \%values);
 
-#::logDebug("request returned: $merchant_return->{result_page}");
+    ::logDebug("request returned: $merchant_return->{result_page}") if DEBUG;
 
     my %result;
 
     my @lines = split /\n/, $merchant_return->{result_page};
     foreach (@lines) {
         chomp;
-#::logDebug("found response line=$_");
+        ::logDebug("found response line=$_") if DEBUG;
         my ($name, $val) = split(/=/,$_);
-#::logDebug("name=$name value=$val");
+        ::logDebug("name=$name value=$val") if DEBUG;
         $result{$name} = $val;
     }
 
@@ -272,11 +289,9 @@ sub nova {
     $result{'pop.error-message'} = $result{'ssl_result_message'} if defined $result{'ssl_result_message'};
     $result{'pop.cvv2_code'}     = $CVV_CODES{$result{'ssl_cvv2_response'}} if defined $result{'ssl_cvv2_response'};
 
-#::logDebug("Nova request result: " . ::uneval(\%result) );
+    ::logDebug("Nova request result: " . ::uneval(\%result) ) if DEBUG;
 
     return %result;
 }
-
-package Vend::Payment::Nova;
 
 1;
